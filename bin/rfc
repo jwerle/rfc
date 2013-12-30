@@ -252,21 +252,23 @@ function open (arg) {
 }
 
 function list () {
+  o();
   rfc.list()
   .on('error', function (err) {
     e("error: %s", err.message);
     exit(1);
   })
   .on('item', function (item) {
-    o();
     o("  * %s - (%s)", item.name, item.path);
-    o();
-  }).on('empty', function () {
+  })
+  .on('empty', function () {
     o()
     o("  no local rfc documents found!");
     o();
     exit(1);
   });
+
+  o();
 }
 
 function clear () {
