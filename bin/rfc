@@ -1,0 +1,272 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies
+ */
+
+var rfc = require('../')
+  , fs = require('fs')
+  , fmt = require('util').format
+  , pkg = require('../package')
+  , Progress = require('progress')
+
+/**
+ * Program version
+ */
+
+var VERSION = pkg.version;
+
+/**
+ * Program flags
+ */
+
+var USE_REGEX = false;
+var VERBOSE = false;
+
+var i = 0;
+var o = console.log;
+var e = console.error;
+var fread = fs.readFileSync;
+var exit = process.exit;
+var argv = process.argv; argv.shift();
+var argc = argv.length;
+var cargs = null;
+var arg = null;
+var cmd = null;
+var opt = null;
+var usageTxt = null;
+
+function printf () {
+  process.stdout.write(fmt.apply(null, arguments));
+}
+
+cmd = argv[1];
+usageTxt = String(fread(__dirname + '/usage.txt'));
+
+if (null == cmd) {
+  help();
+  exit(0);
+}
+
+for (i = 0; (arg = argv[i]); ++i) {
+  if (null == cmd && '-' != arg[0]) {
+    cmd = arg;
+  }
+
+  if ('-' != arg[0]) {
+    continue;
+  }
+
+  switch (arg) {
+    case '-r': case '--regex':
+      USE_REGEX = true;
+      break;
+
+    case '-v': case '--verbose':
+      VERBOSE = true;
+      break;
+
+    case '-V': case '--version':
+      version();
+      break;
+
+    case '-h': case '--help':
+      help();
+      break;
+
+    default:
+      e("unknown option: `"+ arg +"'");
+      usage();
+      exit(1);
+  }
+}
+
+for (i = 0; (arg = argv[i]); ++i) {
+  if ('-' == arg[0]) {
+    continue;
+  }
+
+  cargs = argv.slice(i + 1);
+
+  switch (arg) {
+    case 'sync':
+      sync();
+      break;
+
+    case 'search':
+      search(cargs);
+      break;
+
+    case 'open':
+      open(cargs);
+      break;
+
+    case 'clear':
+      clear();
+      break;
+
+    case 'ls':
+    case 'list':
+      list();
+      break;
+  }
+}
+
+function usage () {
+  o(usageTxt)
+}
+
+function version () {
+  o(VERSION);
+  exit(0);
+}
+
+function help () {
+  usage();
+  o("options:");
+  o("  -r, --regex       use regex query input");
+  o("  -v, --verbose     show verbose output");
+  o("  -V, --version     output version");
+  o("  -h, --help        display this message");
+  o();
+  o("commands:");
+  o("  sync              sync remote rfc index file");
+  o("  search <query>    search rfc index");
+  o("  open <rfc>        open an rfc document by id");
+  o("  list              list all local rfc documents");
+  o("  clear             clear local cache");
+  exit(0);
+}
+
+function sync () {
+  var bar = null;
+
+  o("");
+  o("  ... syncing from '%s'", rfc.RFC_INDEX_URL);
+
+  rfc.sync()
+  .on('length', function (len) {
+    bar = new Progress('  syncing [:bar] :percent (:etas)', {
+      complete: '-',
+      incomplete: ' ',
+      width: 50,
+      total: len
+    });
+  })
+  .on('progress', function (n) {
+    bar.tick(n);
+  })
+  .on('error', function (err) {
+    e("error: %s", err.message);
+    exit(1);
+  })
+  .on('end', function () {
+
+    o("  ✓ synced! (%s%s)",
+      rfc.RFC_CACHE,
+      rfc.RFC_CACHE_INDEX);
+
+      exit(0);
+  });
+}
+
+function search (query) {
+  if (true == USE_REGEX) {
+    if ('/' == query[0]) {
+      query = Function('return '+ query);
+    } else {
+      query = RegExp(query, 'g');
+    }
+  } else {
+    query = query.join(' ');
+  }
+
+  var count = 0;
+
+  o("  ... searching");
+  o();
+  rfc.search(query)
+  .on('error', function (err) {
+    e("error: %s", err.message);
+    exit(1);
+  })
+  .on('result', function (result) {
+    count++;
+    printf("  %d   ", result.rfc);
+    printf("%s\n", result.desc.replace(/\n/gm, '\n    '))
+  })
+  .on('end', function () {
+    o()
+    o("  %d result%s", count, count > 1? 's' : '');
+    exit(0);
+  });
+}
+
+function open (arg) {
+  var results = [];
+  var item = null;
+  var query = arg.join(' ');
+
+  item = new rfc.RFC({rfc: query});
+
+  if (item.isSynced()) {
+    return item.open();
+  }
+
+  rfc.search(query)
+  .on('error', function (err) {
+    e("error: %s", err.message);
+    exit(1);
+  })
+  .on('result', function (result) {
+    results.push(result);
+
+    if (0 == results.length) {
+      o();
+      o("  no results");
+    } else if (results.length > 1) {
+      e("error: open: returned '%d' RFC results", results.length);
+      e("error: open: '%s' is too ambiguous", query);
+      e("error: open: try 'rfc search %s'", query);
+      exit(1);
+    } else {
+      var result = results.shift();
+      var stream = result.open();
+      if (null == stream) {
+        e("error: open: an unknown error occured");
+        exit(1);
+      }
+
+      stream.on('error', function (err) {
+        error("error: open: %s", err.message);
+        exit(1);
+      });
+    }
+  })
+}
+
+function list () {
+  rfc.list()
+  .on('error', function (err) {
+    e("error: %s", err.message);
+    exit(1);
+  })
+  .on('item', function (item) {
+    o();
+    o("  * %s - (%s)", item.name, item.path);
+    o();
+  }).on('empty', function () {
+    o()
+    o("  no local rfc documents found!");
+    o();
+    exit(1);
+  });
+}
+
+function clear () {
+  o();
+  o("  ... clearing '%s'", rfc.RFC_CACHE);
+  o();
+  rfc.clear();
+  exit(0);
+}
