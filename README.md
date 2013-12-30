@@ -137,3 +137,5 @@ rfc.search('idna')
 ```
 
 ## license
+
+MIT
