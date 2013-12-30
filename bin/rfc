@@ -206,6 +206,7 @@ function open (arg) {
   var results = [];
   var item = null;
   var query = arg.join(' ');
+  var resultOpen = false;
 
   item = new rfc.RFC({rfc: query});
 
@@ -221,6 +222,10 @@ function open (arg) {
   .on('result', function (result) {
     results.push(result);
 
+    if (true == resultOpen) {
+      return;
+    }
+
     if (0 == results.length) {
       o();
       o("  no results");
@@ -232,6 +237,7 @@ function open (arg) {
     } else {
       var result = results.shift();
       var stream = result.open();
+      resultOpen = true;
       if (null == stream) {
         e("error: open: an unknown error occured");
         exit(1);
