@@ -1,6 +1,6 @@
 {
   "name": "rfc",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "IETF RFC reader tool",
   "main": "index.js",
   "preferGlobal": true,
@@ -24,5 +24,14 @@
     "mkdirp": "~0.3.5",
     "rmrf": "~1.0.2",
     "progress": "~1.1.2"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jwerle/rfc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jwerle/rfc/issues"
+  },
+  "homepage": "https://github.com/jwerle/rfc"
 }
