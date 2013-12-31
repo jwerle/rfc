@@ -115,12 +115,17 @@ function sync () {
 exports.search = search;
 function search (query, opts) {
   var stream = through(write);
+  var indexFile = exports.RFC_CACHE +'/'+ exports.RFC_CACHE_INDEX;
 
-  if ('object' != opts) {
+  if (null == query || '*' == query) {
+    query = '.*';
+  }
+
+  if ('object' != typeof opts) {
     opts = {};
   }
 
-  if (opts.useRemote || !fexists(exports.RFC_CACHE +'/'+ exports.RFC_CACHE_INDEX)) {
+  if (opts.useRemote || !fexists(indexFile)) {
     agent.get(exports.RFC_INDEX_URL, function (err, res) {
       if (null != err) {
         return stream.emit('error', err);
@@ -130,7 +135,7 @@ function search (query, opts) {
 
     });
   } else {
-    fs.readFile(exports.RFC_CACHE + exports.RFC_CACHE_INDEX, function (err, buf) {
+    fs.readFile(indexFile, function (err, buf) {
       if (null != err) {
         return stream.emit('error', err);
       }
@@ -203,8 +208,12 @@ function search (query, opts) {
             return stream.emit('error', new Error("result parse error"));
           }
 
-          if ('' == parts[0]) {
+          if ('' == trim(parts[0])) {
             parts.shift();
+          }
+
+          if (!parts.length) {
+            return;
           }
 
           num = parts.shift();
@@ -216,12 +225,15 @@ function search (query, opts) {
           desc = parts.shift();
 
           if (null == desc || 0 == desc.length) {
-            return stream.emit('error', new Error("rfc description result parse error"));
+            return stream.emit('error',
+                               new Error("rfc description result parse error"));
           }
 
           var rfc = new RFC({rfc: num, desc: desc});
 
-          if (!rfc.isSynced()) {
+          if (opts.local && rfc.isSynced()) {
+            stream.emit('result', rfc);
+          } else if (!opts.local && !rfc.isSynced()) {
             rfc.sync().on('error', function (err) {
               stream.emit('error', err);
             }).on('end', function () {
@@ -239,26 +251,25 @@ function search (query, opts) {
 }
 
 /**
- * Opens an RFC with the users
- * `PAGER'
+ * Opens a file in the RFC cache 
+ * with the user `PAGER'
  *
  * @api public
- * @param {String|Number} rfc
+ * @param {String} path
  */
 
 exports.open = open;
-function open (rfc) {
+function open (file) {
   var stream = through();
   var doc = null;
   var cmd = null;
   var pager = null;
-  var path = [exports.RFC_CACHE, 'rfc'+ rfc +'.txt'].join('/');
 
-  if (!fexists(path)) {
+  if (!fexists(file)) {
     return null;
   }
 
-  pager = cp.spawn(process.env.PAGER, [path], {
+  pager = cp.spawn(process.env.PAGER, [file], {
     stdio: 'inherit'});
 
   pager.on('error', function (err) {
@@ -383,7 +394,7 @@ function RFC (opts) {
 
 RFC.prototype.open = function () {
   var stream = through();
-  return exports.open(this.rfc);
+  return exports.open(this.path);
 };
 
 /**
@@ -417,6 +428,7 @@ RFC.prototype.sync = function () {
     stream.pipe(out);
     stream.write(trim(res.text));
     stream.end();
+    out.end();
   });
 
   return stream;

@@ -30,6 +30,7 @@ var fread = fs.readFileSync;
 var exit = process.exit;
 var argv = process.argv; argv.shift();
 var argc = argv.length;
+var hasCmd = false;
 var cargs = null;
 var arg = null;
 var cmd = null;
@@ -38,6 +39,12 @@ var usageTxt = null;
 
 function printf () {
   process.stdout.write(fmt.apply(null, arguments));
+}
+
+function c (ch, n) {
+  var s = "", i = 0;
+  for (; i < n; ++i) s += ch;
+  return s;
 }
 
 cmd = argv[1];
@@ -49,6 +56,7 @@ if (null == cmd) {
 }
 
 for (i = 0; (arg = argv[i]); ++i) {
+
   if (null == cmd && '-' != arg[0]) {
     cmd = arg;
   }
@@ -81,7 +89,7 @@ for (i = 0; (arg = argv[i]); ++i) {
   }
 }
 
-for (i = 0; (arg = argv[i]); ++i) {
+for (i = 0; false == hasCmd && (arg = argv[i]); ++i) {
   if ('-' == arg[0]) {
     continue;
   }
@@ -90,27 +98,38 @@ for (i = 0; (arg = argv[i]); ++i) {
 
   switch (arg) {
     case 'sync':
+      hasCmd = true;
       sync();
       break;
 
     case 'search':
+      hasCmd = true;
       search(cargs);
       break;
 
     case 'open':
+      hasCmd = true;
       open(cargs);
       break;
 
     case 'clear':
+      hasCmd = true;
       clear();
+      break;
+
+    case 'index':
+      hasCmd = true;
+      index();
       break;
 
     case 'ls':
     case 'list':
+      hasCmd = true;
       list();
       break;
   }
 }
+
 
 function usage () {
   o(usageTxt)
@@ -134,6 +153,7 @@ function help () {
   o("  search <query>    search rfc index");
   o("  open <rfc>        open an rfc document by id");
   o("  list              list all local rfc documents");
+  o("  index             show local rfc index");
   o("  clear             clear local cache");
   exit(0);
 }
@@ -185,7 +205,7 @@ function search (query) {
 
   o("  ... searching");
   o();
-  rfc.search(query)
+  rfc.search(query, true)
   .on('error', function (err) {
     e("error: %s", err.message);
     exit(1);
@@ -193,11 +213,12 @@ function search (query) {
   .on('result', function (result) {
     count++;
     printf("  %d   ", result.rfc);
-    printf("%s\n", result.desc.replace(/\n/gm, '\n    '))
+    printf("%s\n\n", result.desc.replace(/\n/gm, '\n    '));
+    printf("  %s\n\n", c('-', 78));
   })
   .on('end', function () {
     o()
-    o("  %d result%s", count, count > 1? 's' : '');
+    o("  ... (%d) result%s", count, count > 1? 's' : '');
     exit(0);
   });
 }
@@ -209,6 +230,18 @@ function open (arg) {
   var m = 0;
   var query = arg.join(' ');
   var resultOpen = false;
+
+  if ('index' == query) {
+    rfc.open(rfc.RFC_CACHE +'/'+ rfc.RFC_CACHE_INDEX)
+    .on('error', function (err) {
+      e("error: %s", err.message);
+      exit(1);
+    }).on('end', function () {
+      exit(0);
+    });
+
+    return;
+  }
 
   if (!isNaN(parseInt(query, 10))) {
     if (query.length < 4) {
@@ -290,4 +323,23 @@ function clear () {
   o();
   rfc.clear();
   exit(0);
+}
+
+function index () {
+  o();
+  rfc.search('*', {local: true})
+  .on('error', function (err) {
+    e("error: %s", err.message);
+    exit(1);
+  })
+  .on('result', function (result) {
+    printf("  %d   ", result.rfc);
+    printf("%s\n\n", result.desc.replace(/\n/gm, '\n    '))
+    printf("  %s\n\n", c('-', 78));
+  })
+  .on('end', function () {
+    o();
+    o("  ... Try '$ rfc open index' too view the index in your PAGER");
+    o();
+  });
 }
