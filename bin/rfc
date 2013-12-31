@@ -205,8 +205,21 @@ function search (query) {
 function open (arg) {
   var results = [];
   var item = null;
+  var tmp = null;
+  var m = 0;
   var query = arg.join(' ');
   var resultOpen = false;
+
+  if (!isNaN(parseInt(query, 10))) {
+    if (query.length < 4) {
+      tmp = query.length - 4;
+      m = tmp >> 31;
+      tmp = (m ^ tmp) - m;
+      for (n = 0; n < tmp; ++n) {
+        query = '0' + query;
+      }
+    }
+  }
 
   item = new rfc.RFC({rfc: query});
 
