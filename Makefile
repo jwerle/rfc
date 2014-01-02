@@ -1,11 +1,10 @@
-
 BIN ?= rfc
 NODE_MODULES = ./node_modules
 PREFIX ?= /usr/local
 MANPREFIX ?= $(PREFIX)/share/man/man1
 MANPAGE = $(BIN).1
 
-$(BIN): build test
+$(BIN): build
 
 build:
 	npm i
