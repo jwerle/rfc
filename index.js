@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies
  */
@@ -338,7 +337,7 @@ function list () {
     var lines = str.split('\n');
 
     while (null != (line = lines.shift())) {
-      if (/.txt/.test(line)) {
+      if (/\.txt/.test(line)) {
         item = {};
         item.name = p.basename(line);
         item.path = exports.RFC_CACHE +'/'+ line;
@@ -367,7 +366,7 @@ function list () {
 
 exports.clearRfc = clearRfc;
 function clearRfc (rfc) {
-  return rmrf(exports.RFC_CACHE_INDEX + '/rfc'+ rfc +'.txt');
+  return rmrf(exports.RFC_CACHE_INDEX + '/rfc' + rfc + '.txt');
 }
 
 /**
