@@ -80,7 +80,7 @@ rfc.search('punycode')
 .on('error', function (err) {
   // handle error
 })
-.on('result', function (result) 
+.on('result', function (result) {
   count++;
   console.log("  %d %s", result.rfc, result.desc);
 })
