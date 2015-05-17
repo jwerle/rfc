@@ -12,7 +12,6 @@ var through = require('through')
 
 var fread = fs.readFileSync;
 var fexists = fs.existsSync;
-var TMPDIR = '/tmp';
 
 /**
  * IETF RFC Base URL
@@ -30,7 +29,7 @@ exports.RFC_INDEX_URL = exports.RFC_BASE_URL + '/rfc-index.txt';
  * Default RFC cache
  */
 
-exports.RFC_CACHE = [TMPDIR, 'ietf-rfc'].join('/');
+exports.RFC_CACHE = [process.env['HOME'], '.rfc.d'].join('/');
 
 /**
  * Default RFC Index cache
@@ -72,7 +71,7 @@ function sync () {
       }
 
       var out = fs.createWriteStream(path, {
-       flags: 'w+' 
+       flags: 'w+'
       });
 
       var line = null;
@@ -250,7 +249,7 @@ function search (query, opts) {
 }
 
 /**
- * Opens a file in the RFC cache 
+ * Opens a file in the RFC cache
  * with the user `PAGER'
  *
  * @api public
