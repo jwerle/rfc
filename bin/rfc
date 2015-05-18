@@ -278,7 +278,7 @@ function open (arg) {
     } else if (results.length > 1) {
       e("error: open: returned '%d' RFC results", results.length);
       e("error: open: '%s' is too ambiguous", query);
-      e("error: open: try 'rfc search %s'", query);
+      e("error: open: try `rfc search %s`", query);
       exit(1);
     } else {
       var result = results.shift();
@@ -310,6 +310,7 @@ function list () {
   .on('empty', function () {
     o()
     o("  no local rfc documents found!");
+    o("  try `rfc sync` first");
     o();
     exit(1);
   });
@@ -339,7 +340,7 @@ function index () {
   })
   .on('end', function () {
     o();
-    o("  ... Try '$ rfc open index' too view the index in your PAGER");
+    o("  ... Try `rfc open index` too view the index in your PAGER");
     o();
   });
 }
