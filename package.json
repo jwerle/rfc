@@ -9,7 +9,6 @@
   },
   "man": "./rfc.1",
   "scripts": {
-    "install": "make man",
     "test": "make test"
   },
   "keywords": [
