@@ -1,6 +1,6 @@
 {
   "name": "rfc",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "IETF RFC reader tool",
   "main": "index.js",
   "preferGlobal": true,
@@ -9,7 +9,10 @@
   },
   "man": "./rfc.1",
   "scripts": {
-    "test": "make test"
+    "docs": "jsdoc -c ./jsdoc.conf.json",
+    "man": "curl -# -F page=@rfc.1.md -o rfc.1 http://mantastic.herokuapp.com",
+    "test": "node test.js",
+    "mypublish": "npm run man && npm publish"
   },
   "keywords": [
     "ietf",
@@ -19,13 +22,16 @@
   "author": "Joseph Werle",
   "license": "MIT",
   "dependencies": {
-    "through": "~2.3.4",
-    "superagent": "~0.15.7",
-    "mkdirp": "~0.3.5",
+    "mkdirp": "~0.5.1",
+    "os-homedir": "^1.0.1",
+    "progress": "~1.1.2",
     "rmrf": "~1.0.2",
-    "progress": "~1.1.2"
+    "superagent": "~1.6.1",
+    "through": "~2.3.8"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jsdocs": "^0.1.0"
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/jwerle/rfc.git"

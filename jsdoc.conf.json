@@ -1,0 +1,19 @@
+{
+    "plugins": [
+        "plugins/markdown"
+    ],
+    "source": {
+        "include": ["./index.js"]
+    },
+    "opts": {
+        "access": "public",
+        "encoding": "utf8",
+        "destination": "./docs/",
+        "recurse": true,
+        "readme": "./README.md",
+        "package": "./package.json"
+    },
+    "markdown": {
+        "hardwrap": true
+    }
+}
