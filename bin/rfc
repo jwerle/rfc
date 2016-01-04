@@ -1,22 +1,23 @@
 #!/usr/bin/env node
 
-/**
+/*
  * Module dependencies
  */
 
 var rfc = require('../')
   , fs = require('fs')
   , fmt = require('util').format
+  , p = require('path')
   , pkg = require('../package')
   , Progress = require('progress')
 
-/**
+/*
  * Program version
  */
 
 var VERSION = pkg.version;
 
-/**
+/*
  * Program flags
  */
 
@@ -48,7 +49,7 @@ function c (ch, n) {
 }
 
 cmd = argv[1];
-usageTxt = String(fread(__dirname + '/usage.txt'));
+usageTxt = String(fread(p.resolve(__dirname, 'usage.txt')));
 
 if (null == cmd) {
   help();
@@ -181,12 +182,9 @@ function sync () {
     exit(1);
   })
   .on('end', function () {
-
-    o("  ✓ synced! (%s%s)",
-      rfc.RFC_CACHE,
-      rfc.RFC_CACHE_INDEX);
-
-      exit(0);
+    o("  ✓ synced! (%s)",
+      p.resolve(rfc.RFC_CACHE, rfc.RFC_CACHE_INDEX));
+    exit(0);
   });
 }
 

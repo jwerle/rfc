@@ -1,4 +1,4 @@
-/**
+/*
  * Module dependencies
  */
 
@@ -9,53 +9,58 @@ var through = require('through')
   , p = require('path')
   , mkdirp = require('mkdirp')
   , rmrf = require('rmrf')
+  , osHomedir = require('os-homedir');
 
 var fread = fs.readFileSync;
 var fexists = fs.existsSync;
 
 /**
  * IETF RFC Base URL
+ *
+ * @public
  */
 
 exports.RFC_BASE_URL = 'http://www.ietf.org/rfc';
 
 /**
  * IETF RFC Index file URL
+ *
+ * @public
  */
 
 exports.RFC_INDEX_URL = exports.RFC_BASE_URL + '/rfc-index.txt';
 
 /**
- * Default RFC cache
- */
-
-exports.RFC_CACHE = [process.env['HOME'], '.rfc.d'].join('/');
-
-/**
- * Default RFC Index cache
- * file name
- */
-
-exports.RFC_CACHE_INDEX = '/rfc-index';
-
-/**
- * Syncs RFC Index file to
- * a local file
+ * Default RFC cache folder
  *
- * @api public
+ * @public
+ */
+
+exports.RFC_CACHE = p.resolve(osHomedir(), '.rfc.d');
+
+/**
+ * Default RFC Index cache file (file name)
+ *
+ * @public
+ */
+
+exports.RFC_CACHE_INDEX = 'rfc-index';
+
+/**
+ * Syncs RFC Index file to `RFC_CACHE/RFC_CACHE_INDEX`
+ *
+ * @public
+ * @function
  * @return {Stream}
  */
 
 exports.sync = sync;
 function sync () {
   var stream = through();
-  var path = null;
-
-  path = exports.RFC_CACHE;
-  path += exports.RFC_CACHE_INDEX;
+  var path = p.resolve(exports.RFC_CACHE, exports.RFC_CACHE_INDEX);
 
   mkdirp(exports.RFC_CACHE, function (err) {
-    if (null != err && !/EEXIST/.test(err.message)) {
+    if (null !== err && !/EEXIST/.test(err.message)) {
       return stream.emit('error', err);
     }
 
@@ -66,20 +71,19 @@ function sync () {
 
   function fetchIndex () {
     agent.get(exports.RFC_INDEX_URL, function (err, res) {
-      if (null != err) {
+      if (null !== err) {
         return stream.emit('error', err);
       }
 
       var out = fs.createWriteStream(path, {
-       flags: 'w+'
+        flags: 'w+'
       });
 
       var line = null;
       var lines = null;
       var len = 0;
-      var progress = 0;
 
-      if (0 != res.text.length) {
+      if (0 !== res.text.length) {
         lines = res.text.split('\n');
         len = lines.length;
 
@@ -101,31 +105,32 @@ function sync () {
 }
 
 /**
- * Searches RFC Index based
- * on a query
+ * Searches RFC Index based on a query
  *
- * @api public
- * @param {String|Regex|Function} query
- * @param {Object} opts - optiona;
+ * @public
+ * @function
+ * @param {String|Regex} query
+ * @param {Object} [opts]
  * @return {Stream}
+ * @todo  support query function
  */
 
 exports.search = search;
 function search (query, opts) {
   var stream = through(write);
-  var indexFile = exports.RFC_CACHE +'/'+ exports.RFC_CACHE_INDEX;
+  var indexFile = p.resolve(exports.RFC_CACHE, exports.RFC_CACHE_INDEX);
 
-  if (null == query || '*' == query) {
+  if (null === query || '*' === query) {
     query = '.*';
   }
 
-  if ('object' != typeof opts) {
+  if ('object' !== typeof opts) {
     opts = {};
   }
 
   if (opts.useRemote || !fexists(indexFile)) {
     agent.get(exports.RFC_INDEX_URL, function (err, res) {
-      if (null != err) {
+      if (null !== err) {
         return stream.emit('error', err);
       }
 
@@ -134,7 +139,7 @@ function search (query, opts) {
     });
   } else {
     fs.readFile(indexFile, function (err, buf) {
-      if (null != err) {
+      if (null !== err) {
         return stream.emit('error', err);
       }
 
@@ -148,19 +153,18 @@ function search (query, opts) {
     var line = null;
     var nline = null;
     var ch = null;
-    var chunk = null;
-    var i = -1;
     var lines = data.split('\n');
     var inBody = false;
-    var buffer = [];
     var tmp = [];
 
+    // FIXME: changing to strict equality breaks
     while (null != (line = lines.shift())) {
       nline = lines[0];
       ch = trim(line).toLowerCase();
 
       if (/^rfc index$/.test(ch)) {
-        if ('---------' == trim(nline)) {
+        // this matches the header AFTER the comments
+        if ('---------' === trim(nline)) {
           inBody = true;
           lines.shift();
           break;
@@ -168,10 +172,11 @@ function search (query, opts) {
       }
     }
 
-    if (false == inBody) {
+    if (!inBody) {
       return stream.emit('error', new Error("body parse error"));
     }
 
+    // FIXME: changing to strict equality breaks
     while (null != (line = lines.shift())) {
       if (line.length) {
         tmp.push(line);
@@ -193,74 +198,66 @@ function search (query, opts) {
 
     if (query instanceof RegExp) {
       regex = query;
+    } else {
+      regex = RegExp('(' + query + ')', 'ig');
     }
 
-    switch (typeof query) {
-      case 'string':
-        regex = regex || RegExp('('+ query +')', 'ig');
+    if (regex.test(str)) {
+      parts = str.split(/^([0-9]+)\s+/);
 
-        if (regex.test(str)) {
-          parts = str.split(/^([0-9]+)\s+/);
+      if (null == parts) {
+        return stream.emit('error', new Error("result parse error"));
+      }
 
-          if (null == parts) {
-            return stream.emit('error', new Error("result parse error"));
-          }
+      if ('' === trim(parts[0])) {
+        parts.shift();
+      }
 
-          if ('' == trim(parts[0])) {
-            parts.shift();
-          }
+      if (!parts.length) {
+        return;
+      }
 
-          if (!parts.length) {
-            return;
-          }
+      num = parts.shift();
 
-          num = parts.shift();
+      if (isNaN(num = parseInt(num, 10))) {
+        return stream.emit('error', new Error("rfc # result parse error"));
+      }
 
-          if (true == isNaN(num = parseInt(num, 10))) {
-            return stream.emit('error', new Error("rfc # result parse error"));
-          }
+      desc = parts.shift();
 
-          desc = parts.shift();
+      if (null === desc || 0 === desc.length) {
+        return stream.emit('error',
+                           new Error("rfc description result parse error"));
+      }
 
-          if (null == desc || 0 == desc.length) {
-            return stream.emit('error',
-                               new Error("rfc description result parse error"));
-          }
+      var rfc = new RFC({rfc: num, desc: desc});
 
-          var rfc = new RFC({rfc: num, desc: desc});
-
-          if (opts.local && rfc.isSynced()) {
-            stream.emit('result', rfc);
-          } else if (!opts.local && !rfc.isSynced()) {
-            rfc.sync().on('error', function (err) {
-              stream.emit('error', err);
-            }).on('end', function () {
-              stream.emit('result', rfc);
-            });
-          } else {
-            stream.emit('result', rfc);
-          }
-
-          return;
-        }
-        break;
+      if (opts.local && rfc.isSynced()) {
+        stream.emit('result', rfc);
+      } else if (!opts.local && !rfc.isSynced()) {
+        rfc.sync().on('error', function (err) {
+          stream.emit('error', err);
+        }).on('end', function () {
+          stream.emit('result', rfc);
+        });
+      } else {
+        stream.emit('result', rfc);
+      }
     }
   }
 }
 
 /**
- * Opens a file in the RFC cache
- * with the user `PAGER'
+ * Opens a file in the RFC cache with the user `PAGER`
  *
- * @api public
+ * @public
+ * @function
  * @param {String} path
  */
 
 exports.open = open;
 function open (file) {
   var stream = through();
-  var doc = null;
-  var cmd = null;
   var pager = null;
 
   if (!fexists(file)) {
@@ -289,9 +286,10 @@ function open (file) {
 }
 
 /**
- * Removes everything from the RFC cache
+ * Removes everything from the `RFC_CACHE`
  *
- * @api public
+ * @public
+ * @function
  */
 
 exports.clear = clear;
@@ -302,18 +300,20 @@ function clear () {
 /**
  * Clears RFC Index cache
  *
- * @api public
+ * @public
+ * @function
  */
 
 exports.clearIndex = clearIndex;
 function clearIndex () {
-  return rmrf(exports.RFC_CACHE_INDEX);
+  return rmrf(p.resolve(exports.RFC_CACHE, exports.RFC_CACHE_INDEX));
 }
 
 /**
- * Lists all RFC files
+ * Lists all downloaded RFC files in `RFC_CACHE`
  *
- * @api public
+ * @public
+ * @function
  */
 
 exports.list = list;
@@ -335,11 +335,11 @@ function list () {
     var line = null;
     var lines = str.split('\n');
 
-    while (null != (line = lines.shift())) {
+    while (null !== (line = lines.shift())) {
       if (/\.txt/.test(line)) {
         item = {};
         item.name = p.basename(line);
-        item.path = exports.RFC_CACHE +'/'+ line;
+        item.path = p.resolve(exports.RFC_CACHE, line);
         stream.emit('item', item);
       }
     }
@@ -357,68 +357,72 @@ function list () {
 }
 
 /**
- * Removes an RFC from the cache
+ * Removes an RFC document from the cache
  *
- * @api public
+ * @public
+ * @function
  * @param {String|Number} rfc
  */
 
 exports.clearRfc = clearRfc;
 function clearRfc (rfc) {
-  return rmrf(exports.RFC_CACHE_INDEX + '/rfc' + rfc + '.txt');
+  return rmrf(rfcCachePath(rfc));
 }
 
 /**
- * `RFC' constructor
+ * `RFC` class representing an RFC document
  *
- * @api public
+ * @public
+ * @class RFC
  * @param {Object} opts
  */
 
 exports.RFC = RFC;
 function RFC (opts) {
+  /** RFC number */
   this.rfc = Number(opts.rfc);
+  /** RFC description */
   this.desc = String(opts.desc);
-  this.path = opts.path || [
-    exports.RFC_CACHE, 'rfc'+ this.rfc +'.txt'].join('/');
+  /** Path for the downloaded RFC document */
+  this.path = opts.path || rfcCachePath(this.rfc);
 }
 
 /**
- * Opens the RFC with the
- * users `$PAGER'
+ * Opens the RFC with the users `$PAGER`
  *
- * @api public
+ * @public
+ * @function
  */
 
 RFC.prototype.open = function () {
-  var stream = through();
   return exports.open(this.path);
 };
 
 /**
- * Predicate to test if RFC
- * is sync'd to system
+ * Predicate to test if RFC is sync'd to file system
  *
- * @api public
+ * @public
+ * @function
  */
 
 RFC.prototype.isSynced = function () {
-  return fexists(this.path) ? true : false;
+  return fexists(this.path);
 };
 
 /**
- * Syncs RFC to system
+ * Syncs RFC to file system
  *
- * @api public
+ * @public
+ * @function
  */
 
 RFC.prototype.sync = function () {
   var stream = through();
-  var name = '/rfc'+ this.rfc +'.txt';
-  var fpath = exports.RFC_CACHE + name;
+  var name = '/rfc' + this.rfc + '.txt';
+  var fpath = rfcCachePath(this.rfc);
 
   agent.get(exports.RFC_BASE_URL + name, function (err, res) {
-    if (null != err) {
+    if (err) {
       return stream.emit('error', err);
     }
 
@@ -434,17 +438,29 @@ RFC.prototype.sync = function () {
 
 /**
  * Trim utility
+ *
+ * @function
  */
 
 function trim (str) {
   var i = 0;
   str = str.replace(/^\s+/, '').trim();
-  for (i = str.length - 1; i >= 0; i--) {;
-    if (true == /\S/.test(str.charAt(i))) {
+  for (i = str.length - 1; i >= 0; i--) {
+    if (/\S/.test(str.charAt(i))) {
       str = str.substring(0, i + 1);
       break;
     }
   }
 
   return str;
+}
+
+/**
+ * Get path of RFC document in cache
+ *
+ * @function
+ */
+function rfcCachePath (rfc) {
+  return p.resolve(exports.RFC_CACHE,
+    'rfc' + rfc + '.txt');
 }
