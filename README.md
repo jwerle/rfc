@@ -14,10 +14,7 @@ $ npm install rfc -g
 with **git**
 
 ```sh
-$ git clone git@github.com:jwerle/rfc.git
-$ cd rfc/
-$ make
-$ make install
+$ npm install github:jwerle/rfc -g
 ```
 
 ## usage
