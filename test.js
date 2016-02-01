@@ -3,7 +3,7 @@
  * Module dependencies
  */
 
-var rfc = require('./')
+var rfc = require('./');
 
 if (false) {
   rfc.sync()
@@ -14,8 +14,19 @@ if (false) {
 var search = rfc.search('punycode');
 
 search.on('result', function (result) {
-  result.open().on('error', function (err) {
-    throw err;
-  });
+  if (result.isSynced()) {
+    return result.open()
+      .on('error', function (err) {
+        throw err;
+      });
+  }
+
+  result.sync()
+    .on('error', function (err) {
+      e('error: %s', err);
+    })
+    .on('end', function () {
+      result.open();
+    });
 });
 

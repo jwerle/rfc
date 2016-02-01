@@ -20,6 +20,11 @@ rfc(1) -- IETF RFC Reader Tool
   `list`              list all local rfc documents
   `clear`             clear local cache
 
+## DEBUG
+
+  `DEBUG` tags: `rfc:search`, `rfc:match`, `rfc:sync`
+  See [visionmedia/debug](https://github.com/visionmedia/debug) for details on usage.
+
 ## AUTHOR
 
   - Joseph Werle <joseph.werle@gmail.com>
