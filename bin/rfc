@@ -227,7 +227,7 @@ function open (arg) {
   var tmp = null;
   var m = 0;
   var query = arg.join(' ');
-  var resultOpen = false;
+  var resultOpened = false;
 
   if ('index' == query) {
     rfc.open(rfc.RFC_CACHE +'/'+ rfc.RFC_CACHE_INDEX)
@@ -241,58 +241,41 @@ function open (arg) {
     return;
   }
 
-  if (!isNaN(parseInt(query, 10))) {
-    if (query.length < 4) {
-      tmp = query.length - 4;
-      m = tmp >> 31;
-      tmp = (m ^ tmp) - m;
-      for (n = 0; n < tmp; ++n) {
-        query = '0' + query;
-      }
-    }
+  // open with RFC number
+  var num = parseInt(query, 10);
+  if (!isNaN(num)) {
+    return openRFC(new rfc.RFC({rfc: num}));
   }
 
-  item = new rfc.RFC({rfc: query});
-
-  if (item.isSynced()) {
-    return item.open();
-  }
-
+  // do search
   rfc.search(query)
   .on('error', function (err) {
     e("error: %s", err.message);
     exit(1);
   })
-  .on('result', function (result) {
-    results.push(result);
-
-    if (true == resultOpen) {
-      return;
-    }
-
-    if (0 == results.length) {
-      o();
-      o("  no results");
-    } else if (results.length > 1) {
-      e("error: open: returned '%d' RFC results", results.length);
-      e("error: open: '%s' is too ambiguous", query);
-      e("error: open: try `rfc search %s`", query);
-      exit(1);
-    } else {
-      var result = results.shift();
-      var stream = result.open();
-      resultOpen = true;
-      if (null == stream) {
-        e("error: open: an unknown error occured");
-        exit(1);
+    .on('result', function (result) {
+      if (true === resultOpened) {
+        return;
       }
 
-      stream.on('error', function (err) {
-        error("error: open: %s", err.message);
-        exit(1);
-      });
+      resultOpened = true;
+      openRFC(result);
+    });
+
+  // handles sync (download) and open
+  function openRFC (rfc) {
+    if (rfc.isSynced()) {
+      return rfc.open();
     }
-  })
+
+    rfc.sync()
+      .on('error', function (err) {
+        e("error: %s", err);
+      })
+      .on('end', function () {
+        rfc.open();
+      });
+  }
 }
 
 function list () {

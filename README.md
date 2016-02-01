@@ -3,7 +3,7 @@ rfc(1)
 
 [IETF](http://www.ietf.org) [RFC](http://www.ietf.org/rfc) reader tool
 
-## installl
+## install
 
 with **npm**
 
@@ -21,7 +21,7 @@ $ npm install github:jwerle/rfc -g
 
 **search** 
 
-```sh
+```
 $ rfc search punycode
   ... searching
 
@@ -35,7 +35,7 @@ $ rfc search punycode
 
 **view**
 
-```sh
+```
 $ rfc open 3492
 
 Network Working Group                                        A. Costello
@@ -73,7 +73,7 @@ Abstract
 var rfc = require('rfc')
 
 var count = 0;
-rfc.search('punycode')
+rfc.search('idna')
 .on('error', function (err) {
   // handle error
 })
@@ -91,7 +91,6 @@ rfc.search('punycode')
 ### RFC\_BASE\_URL
 
 IETF RFC Base URL
-
 
 ### RFC\_INDEX\_URL
 
@@ -132,6 +131,11 @@ rfc.search('idna')
     result.desc);
 });
 ```
+
+## debug
+
+`DEBUG` tags: `rfc:search`, `rfc:match`, `rfc:sync`
+See [visionmedia/debug](https://github.com/visionmedia/debug) for details on usage.
 
 ## license
 
