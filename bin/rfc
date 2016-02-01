@@ -43,7 +43,7 @@ function printf () {
 }
 
 function c (ch, n) {
-  var s = "", i = 0;
+  var s = '', i = 0;
   for (; i < n; ++i) s += ch;
   return s;
 }
@@ -84,7 +84,7 @@ for (i = 0; (arg = argv[i]); ++i) {
       break;
 
     default:
-      e("unknown option: `"+ arg +"'");
+      e('unknown option: "'+ arg +'"');
       usage();
       exit(1);
   }
@@ -143,27 +143,27 @@ function version () {
 
 function help () {
   usage();
-  o("options:");
-  o("  -r, --regex       use regex query input");
-  o("  -v, --verbose     show verbose output");
-  o("  -V, --version     output version");
-  o("  -h, --help        display this message");
+  o('options:');
+  o('  -r, --regex       use regex query input');
+  o('  -v, --verbose     show verbose output');
+  o('  -V, --version     output version');
+  o('  -h, --help        display this message');
   o();
-  o("commands:");
-  o("  sync              sync remote rfc index file");
-  o("  search <query>    search rfc index");
-  o("  open <rfc>        open an rfc document by id");
-  o("  list              list all local rfc documents");
-  o("  index             show local rfc index");
-  o("  clear             clear local cache");
+  o('commands:');
+  o('  sync              sync remote rfc index file');
+  o('  search <query>    search rfc index');
+  o('  open <rfc>        open an rfc document by id');
+  o('  list              list all local rfc documents');
+  o('  index             show local rfc index');
+  o('  clear             clear local cache');
   exit(0);
 }
 
 function sync () {
   var bar = null;
 
-  o("");
-  o("  ... syncing from '%s'", rfc.RFC_INDEX_URL);
+  o('');
+  o('  ... syncing from "%s"', rfc.RFC_INDEX_URL);
 
   rfc.sync()
   .on('length', function (len) {
@@ -178,11 +178,11 @@ function sync () {
     bar.tick(n);
   })
   .on('error', function (err) {
-    e("error: %s", err.message);
+    e('error: %s', err.message);
     exit(1);
   })
   .on('end', function () {
-    o("  ✓ synced! (%s)",
+    o('  ✓ synced! (%s)',
       p.resolve(rfc.RFC_CACHE, rfc.RFC_CACHE_INDEX));
     exit(0);
   });
@@ -201,22 +201,22 @@ function search (query) {
 
   var count = 0;
 
-  o("  ... searching");
+  o('  ... searching');
   o();
   rfc.search(query, true)
   .on('error', function (err) {
-    e("error: %s", err.message);
+    e('error: %s', err.message);
     exit(1);
   })
   .on('result', function (result) {
     count++;
-    printf("  %d   ", result.rfc);
-    printf("%s\n\n", result.desc.replace(/\n/gm, '\n    '));
-    printf("  %s\n\n", c('-', 78));
+    printf('  %d   ', result.rfc);
+    printf('%s\n\n', result.desc.replace(/\n/gm, '\n    '));
+    printf('  %s\n\n', c('-', 78));
   })
   .on('end', function () {
     o()
-    o("  ... (%d) result%s", count, count > 1? 's' : '');
+    o('  ... (%d) result%s', count, count > 1? 's' : '');
     exit(0);
   });
 }
@@ -232,7 +232,7 @@ function open (arg) {
   if ('index' == query) {
     rfc.open(rfc.RFC_CACHE +'/'+ rfc.RFC_CACHE_INDEX)
     .on('error', function (err) {
-      e("error: %s", err.message);
+      e('error: %s', err.message);
       exit(1);
     }).on('end', function () {
       exit(0);
@@ -249,17 +249,22 @@ function open (arg) {
 
   // do search
   rfc.search(query)
-  .on('error', function (err) {
-    e("error: %s", err.message);
-    exit(1);
-  })
+    .on('error', function (err) {
+      e('error: %s', err.message);
+      exit(1);
+    })
     .on('result', function (result) {
-      if (true === resultOpened) {
+      if (resultOpened) {
         return;
       }
 
       resultOpened = true;
       openRFC(result);
+    })
+    .on('end', function () {
+      if (!resultOpened) {
+        e('"%s" not found', query);
+      }
     });
 
   // handles sync (download) and open
@@ -270,7 +275,7 @@ function open (arg) {
 
     rfc.sync()
       .on('error', function (err) {
-        e("error: %s", err);
+        e('error: %s', err.message);
       })
       .on('end', function () {
         rfc.open();
@@ -282,16 +287,16 @@ function list () {
   o();
   rfc.list()
   .on('error', function (err) {
-    e("error: %s", err.message);
+    e('error: %s', err.message);
     exit(1);
   })
   .on('item', function (item) {
-    o("  * %s - (%s)", item.name, item.path);
+    o('  * %s - (%s)', item.name, item.path);
   })
   .on('empty', function () {
     o()
-    o("  no local rfc documents found!");
-    o("  try `rfc sync` first");
+    o('  no local rfc documents found!');
+    o('  try `rfc sync` first');
     o();
     exit(1);
   });
@@ -301,7 +306,7 @@ function list () {
 
 function clear () {
   o();
-  o("  ... clearing '%s'", rfc.RFC_CACHE);
+  o('  ... clearing "%s"', rfc.RFC_CACHE);
   o();
   rfc.clear();
   exit(0);
@@ -311,17 +316,17 @@ function index () {
   o();
   rfc.search('*', {local: true})
   .on('error', function (err) {
-    e("error: %s", err.message);
+    e('error: %s', err.message);
     exit(1);
   })
   .on('result', function (result) {
-    printf("  %d   ", result.rfc);
-    printf("%s\n\n", result.desc.replace(/\n/gm, '\n    '))
-    printf("  %s\n\n", c('-', 78));
+    printf('  %d   ', result.rfc);
+    printf('%s\n\n', result.desc.replace(/\n/gm, '\n    '));
+    printf('  %s\n\n', c('-', 78));
   })
   .on('end', function () {
     o();
-    o("  ... Try `rfc open index` too view the index in your PAGER");
+    o('  ... Try `rfc open index` too view the index in your PAGER');
     o();
   });
 }

@@ -422,6 +422,8 @@ RFC.prototype.sync = function () {
     .get(exports.RFC_BASE_URL + name)
     .end(function (err, res) {
       if (err) {
+        SYNCD('RESPONSE Error', err);
+        return stream.emit('error', err);
       }
 
       SYNCD('RESPONSE >', path);
