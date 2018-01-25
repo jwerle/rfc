@@ -29,4 +29,3 @@ search.on('result', function (result) {
       result.open();
     });
 });
-

@@ -272,13 +272,18 @@ exports.search = search;
  */
 function open (file) {
   var stream = through();
-  var pager = null;
+  var pager = getPager();
 
   if (!fexists(file)) {
     return null;
   }
 
-  pager = cp.spawn(process.env.PAGER, [file], {
+  if (!pager) {
+    console.log('PAGER environment variable not set')
+    process.exit(1)
+  }
+
+  pager = cp.spawn(pager, [file], {
     stdio: 'inherit'});
 
   pager.on('error', function (err) {
@@ -464,4 +469,18 @@ function rfcCachePath (rfc) {
   return p.resolve(
     exports.RFC_CACHE,
     'rfc' + rfc + '.txt');
+}
+
+/**
+ * Get available terminal pager
+ *
+ * @private
+ * @return {String}
+ */
+function getPager () {
+  var less = function less () { return cp.execSync('which less').toString().trim() }
+  var more = function more () { return cp.execSync('which more').toString().trim() }
+  var pg = function pg () { return cp.execSync('which pg').toString().trim() }
+
+  return process.env.PAGER || less() || more() || pg();
 }
