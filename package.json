@@ -21,16 +21,17 @@
   "author": "Joseph Werle",
   "license": "MIT",
   "dependencies": {
-    "debug": "^2.2.0",
-    "mkdirp": "~0.5.1",
-    "os-homedir": "^1.0.1",
-    "progress": "~1.1.2",
-    "rmrf": "~1.0.2",
-    "superagent": "^1.7.1",
-    "through": "~2.3.8"
+    "debug": "^4.3.3",
+    "mkdirp": "^1.0.4",
+    "os-homedir": "^2.0.0",
+    "progress": "^2.0.3",
+    "rmrf": "^2.0.4",
+    "superagent": "^7.0.2",
+    "through": "^2.3.8"
   },
   "devDependencies": {
-    "jsdoc": "^3.4.0"
+    "jsdoc": "^3.4.0",
+    "tape": "^5.4.1"
   },
   "repository": {
     "type": "git",
